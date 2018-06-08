@@ -1,0 +1,35 @@
+DROP TABLE IF EXISTS customers;
+
+DROP TABLE IF EXISTS cleanedcustomers;
+
+CREATE EXTERNAL TABLE customers
+(CustomerID INT,
+ Title STRING,
+ FirstName STRING,
+ MiddleName STRING,
+ LastName STRING,
+ EmailAddress STRING,
+ Phone STRING)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+STORED AS TEXTFILE LOCATION 'wasb://bigdata@<storageacct>.blob.core.windows.net/customers/'
+TBLPROPERTIES ("skip.header.line.count"="1");
+
+LOAD DATA INPATH 'wasb://bigdata@<storageacct>.blob.core.windows.net/data/customers.txt' INTO TABLE customers;
+
+CREATE EXTERNAL TABLE cleanedcustomers
+(CustomerID INT,
+ CustomerName STRING,
+ EmailAddress STRING,
+ Phone STRING)
+ ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+STORED AS TEXTFILE LOCATION 'wasb://bigdata@<storageacct>.blob.core.windows.net/output';
+
+INSERT INTO TABLE cleanedcustomers
+SELECT CustomerID,
+       regexp_replace(concat(concat(concat(concat(concat(concat(Title, ' '), FirstName),' '), MiddleName), ' '), LastName), 'NULL', '') AS CustomerName,
+	   EmailAddress,
+	   Phone
+FROM customers
+ORDER BY CustomerID;
+
+SELECT * FROM cleanedcustomers;

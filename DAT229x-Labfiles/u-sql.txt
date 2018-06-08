@@ -1,0 +1,26 @@
+@products = EXTRACT ProductID string,
+                    ProductName string,
+                    ProductNumber string,
+                    Color string,
+                    StandardCost decimal,
+                    ListPrice decimal,
+                    Size string,
+                    NetWeight string
+            FROM "wasb://bigdata@<storageacct>/data/products.txt"
+            USING Extractors.Tsv(skipFirstNRows:1);
+
+@cleanProducts = SELECT ProductID,
+                        ProductName,
+                        ProductNumber,
+                        (Color == "NULL") ? "None" : Color AS Color,
+                        StandardCost,
+                        ListPrice,
+                        ListPrice - StandardCost AS Markup,
+                        (Size == "NULL") ? "N/A" : Size AS Size,
+                        (NetWeight == "NULL") ? "0.00" : NetWeight AS NetWeight
+                FROM @products;
+
+OUTPUT @cleanProducts
+TO "output/cleanproducts.csv"
+ORDER BY ProductID
+USING Outputters.Csv(outputHeader:true);
